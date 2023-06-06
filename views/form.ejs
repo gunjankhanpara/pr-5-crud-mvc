@@ -84,6 +84,9 @@
                             </td>
                             <td>
                                 <input type="file" name="avatar">
+                                <%if(single){ %>
+                                    <img src="<%= single.avatar%>" width="150">
+                                <% } %>
                             </td>
                         </tr>
                         <tr>

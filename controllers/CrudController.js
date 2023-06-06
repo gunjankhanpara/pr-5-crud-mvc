@@ -2,59 +2,53 @@ const CrudTbl = require('../models/CrudTbl');
 
 const fs = require('fs');
 
-const index = (req,res) => {
-    CrudTbl.find({}).then((user)=>{
-        return res.render('form',{
-            user,
-            single : "",
-        });
-    }).catch((err)=>{
+const index = async (req,res) => {
+    try{
+        let user = await CrudTbl.find({});
+        if(user){
+            return res.render('form',{
+                user,
+                single : "",
+            });
+        }
+        else{
+            console.log("data not found");
+        }
+    }
+    catch(err){
         console.log(err);
         return res.redirect('back');
-    })
+    }
 }
 
-const addRecord = (req,res) => {
-    const {name, director, writer, actors, language, country} = req.body;
-    let editId = req.body.editid;
-    if(editId){
-        if(req.file){
-            if(!name || !director || !writer || !actors || !language || !country){
-                console.log("plese all field fill");
-                return res.redirect('back');
-            }
-            //old image unlink
-            CrudTbl.findById(editId)
-            .then((deleteRecord)=>{
-                fs.unlinkSync(deleteRecord.avatar);
-            }).catch(err => console.log(err));
-             //old image unlink
-
-            //new image upload in folder
-            let image = "";
+const addRecord = async (req,res) => {
+    try {
+        const {name, director, writer, actors, language, country} = req.body;
+        let editId = req.body.editid;
+        if(editId){
             if(req.file){
-                image = req.file.path;
-            }
-            //new image upload in folder
-            CrudTbl.findByIdAndUpdate(editId,{
-                name: name,
-                director: director,
-                writer: writer,
-                actors: actors,
-                language: language,
-                country: country,
-                avatar : image
-            }).then((updateRecord)=>{
-                console.log("Record successfully update");
-                return res.redirect('/');
-            }).catch(err => console.log(err));
-            return res.redirect('/');
-        }else{
-            let image = "";
-            CrudTbl.findById(editId)
-            .then((deleteRecord)=>{
-                image = deleteRecord.avatar;
-                CrudTbl.findByIdAndUpdate(editId,{
+                if(!name || !director || !writer || !actors || !language || !country){
+                    console.log("plese all field fill");
+                    return res.redirect('back');
+                }
+                //old image unlink
+                let deleteRecord = await CrudTbl.findById(editId);
+                if(deleteRecord){
+                    fs.unlinkSync(deleteRecord.avatar);
+                }
+                else{
+                    console.log("file not dlt");
+                }
+                 //old image unlink
+    
+                //new image upload in folder
+                let image = "";
+                if(req.file){
+                    image = req.file.path;
+                }
+                //new image upload in folder
+
+                let updateRecord = await CrudTbl.findByIdAndUpdate(editId,{
                     name: name,
                     director: director,
                     writer: writer,
@@ -62,69 +56,128 @@ const addRecord = (req,res) => {
                     language: language,
                     country: country,
                     avatar : image
-                }).then((updateRecord)=>{
+                })
+                if(updateRecord){
                     console.log("Record successfully update");
                     return res.redirect('/');
-                }).catch(err => console.log(err));
-                return res.redirect('/');
-            }).catch(err => console.log(err));
-        }
-    }else{
-        if(!name || !director || !writer || !actors || !language || !country){
-            console.log("plese all field fill");
-            return res.redirect('back');
-        }
-        let image = "";
-        console.log(req.file.size);
-        if(req.file){
-            image = req.file.path;
-        }
-        CrudTbl.create({
-            name: name,
-            director: director,
-            writer: writer,
-            actors: actors,
-            language: language,
-            country: country,
-            avatar : image
-        }).then((data)=>{
-            console.log("Record successfully insert");
-            return res.redirect('back');
-        }).catch((err)=>{
-            console.log(err);
-            return res.redirect('back');
-        })
-    }   
+                }
+                else{
+                    console.log("not update");
+                    return res.redirect('/');
+
+                }
+            }else{
+                let image = "";
+
+                let deleteRecord = await CrudTbl.findById(editId)
+                if(deleteRecord){
+                    image = deleteRecord.avatar;
+                    let updateRecord = await CrudTbl.findByIdAndUpdate(editId,{
+                        name: name,
+                        director: director,
+                        writer: writer,
+                        actors: actors,
+                        language: language,
+                        country: country,
+                        avatar : image
+                    })
+                    if(updateRecord){
+                        console.log("Record successfully update");
+                        return res.redirect('/');
+                    }
+                    else{
+                        console.log("Not Update");
+                    }
+                }
+                else{
+                    console.log("record not fatch");
+                    return res.redirect('/')
+                }
+            }
+        }else{
+            if(!name || !director || !writer || !actors || !language || !country){
+                console.log("plese all field fill");
+                return res.redirect('back');
+            }
+            let image = "";
+            console.log(req.file.size);
+            if(req.file){
+                image = req.file.path;
+            }
+            let data = CrudTbl.create({
+                name: name,
+                director: director,
+                writer: writer,
+                actors: actors,
+                language: language,
+                country: country,
+                avatar : image
+            })
+            if(data){
+                console.log("Record successfully insert");
+                return res.redirect('back');
+            }
+            else{
+                console.log("not insert");
+                return res.redirect('back');
+            }
+        }     
+    } 
+    catch (err) {
+        console.log(err);
+        return res.redirect('/');
+    }
 }
 
-const deleteData = (req,res) => {
+const deleteData = async (req,res) => {
+    try{
     let id = req.query.id;
     //file unlink start
-    CrudTbl.findById(id)
-    .then((deleteRecord)=>{
+    let deleteRecord = await CrudTbl.findById(id);
+     if(deleteRecord){
         fs.unlinkSync(deleteRecord.avatar);
-    }).catch(err => console.log(err));
+    }
+    else
+    {
+        console.log("data not deleted");
+    }
     //file unlink end
-
-   CrudTbl.findByIdAndDelete(id)
-   .then((data)=>{
+    let data = await CrudTbl.findByIdAndDelete(id);
+    if(data){
         console.log("Record successfully delete");
         return res.redirect('back');
-   }).catch((err)=>{
+    }
+    else
+    {
+        console.log("data not found");
+    }
+    }catch(err){
         console.log(err);
         return res.redirect('back');
-   })
+    }
 }
 
 const editData = async(req,res) => {
-    let id = req.query.id;
-    let alldata = await CrudTbl.find({});
-    CrudTbl.findById(id).then((single)=>{
-      return res.render('form',{
-            single,
-            user : alldata
-      })
-    }).catch(err => console.log(err));
+    try{
+        let id = req.query.id;
+        let alldata = await CrudTbl.find({});
+        let single = await CrudTbl.findById(id);
+        if(single){
+            return res.render('form',{
+                  single,
+                  user : alldata
+            })
+        }
+        else{
+            console.log("not fatch");
+            return res.redirect('/')
+        }
+    }
+    catch(err)
+    {
+        console.log(err);
+        return res.redirect('/')
+    }
 }
 
 module.exports = {
